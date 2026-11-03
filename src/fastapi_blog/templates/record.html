@@ -1,0 +1,9 @@
+{% extends "layout.html" %} {% block content %}
+<h1>{{ record.title }}</h1>
+<small
+  >{{ record.owner.username }} · {{ record.service_date }} · {{
+  record.mileage_km }} km</small
+>
+<p>{{ record.notes }}</p>
+<a href="{{ url_for('home') }}">Back to records</a>
+{% endblock %}

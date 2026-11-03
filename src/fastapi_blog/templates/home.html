@@ -1,0 +1,16 @@
+{% extends "layout.html" %} {% block content %}
+<h1>Service history</h1>
+{% for record in records %}
+<article>
+  <h2>{{ record.title }}</h2>
+  <small>{{ record.service_date }} · {{ record.mileage_km }} km</small>
+  <p>{{ record.notes }}</p>
+  <h2>
+    <a href="{{ url_for('record_page', record_id=record.id) }}"
+      >{{ record.title }}</a
+    >
+  </h2>
+</article>
+{% else %}
+<p>No records yet.</p>
+{% endfor %} {% endblock %}
