@@ -17,11 +17,11 @@ from . import models
 from .database import Base, engine, get_db
 from .schemas import (
     RecordCreate,
-    RecordUpdate,
     RecordResponse,
+    RecordUpdate,
     UserCreate,
-    UserUpdate,
     UserResponse,
+    UserUpdate,
 )
 
 Base.metadata.create_all(bind=engine)

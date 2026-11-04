@@ -33,7 +33,7 @@ class UserUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=1, max_length=50)
     email: EmailStr | None = None
 
-    @field_validator("*")
+    @field_validator("username", "email")
     @classmethod
     def not_null_when_provided(cls, value):
         if value is None:
@@ -65,7 +65,7 @@ class RecordUpdate(BaseModel):
     mileage_km: int | None = Field(default=None, ge=0)
     service_date: PastDate | None = None
 
-    @field_validator("*")
+    @field_validator("title", "notes", "mileage_km", "service_date")
     @classmethod
     def not_null_when_provided(cls, value):
         if value is None:
