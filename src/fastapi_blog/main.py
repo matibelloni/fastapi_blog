@@ -20,6 +20,7 @@ from .schemas import (
     RecordUpdate,
     RecordResponse,
     UserCreate,
+    UserUpdate,
     UserResponse,
 )
 
@@ -99,6 +100,33 @@ def get_user_records(user_id: int, db: DbSession):
     return find_user(db, user_id).records
 
 
+@app.put("/api/users/{user_id:int}", response_model=UserResponse)
+def update_user(user_id: int, data: UserCreate, db: DbSession):
+    user = find_user(db, user_id)
+    for field, value in data.model_dump().items():
+        setattr(user, field, value)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@app.patch("/api/users/{user_id:int}", response_model=UserResponse)
+def update_user_partial(user_id: int, data: UserUpdate, db: DbSession):
+    user = find_user(db, user_id)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(user, field, value)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@app.delete("/api/users/{user_id:int}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id: int, db: DbSession):
+    user = find_user(db, user_id)
+    db.delete(user)
+    db.commit()
+
+
 @app.get("/api/records", response_model=list[RecordResponse])
 def get_records(db: DbSession):
     return db.scalars(select(models.ServiceRecord)).all()
@@ -123,9 +151,7 @@ def get_latest_record(db: DbSession):
     "/api/records", response_model=RecordResponse, status_code=status.HTTP_201_CREATED
 )
 def create_record(record: RecordCreate, db: DbSession):
-    if db.get(models.User, record.user_id) is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
-
+    find_user(db, record.user_id)
     new_record = models.ServiceRecord(**record.model_dump())
     db.add(new_record)
     db.commit()
