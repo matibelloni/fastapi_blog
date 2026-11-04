@@ -1,6 +1,23 @@
 from datetime import date
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+)
+
+
+def not_in_future(value: date) -> date:
+    if value > date.today():
+        raise ValueError("service_date cannot be in the future")
+    return value
+
+
+PastDate = Annotated[date, AfterValidator(not_in_future)]
 
 
 class UserBase(BaseModel):
@@ -27,12 +44,20 @@ class RecordBase(BaseModel):
 
 class RecordCreate(RecordBase):
     user_id: int  # temporary until authentication (class 11)
+    service_date: PastDate
 
-    @field_validator("service_date")
+
+class RecordUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=100)
+    notes: str | None = Field(default=None, max_length=1000)
+    mileage_km: int | None = Field(default=None, ge=0)
+    service_date: PastDate | None = None
+
+    @field_validator("*")
     @classmethod
-    def date_not_future(cls, value: date) -> date:
-        if value > date.today():
-            raise ValueError("service_date cannot be in the future")
+    def not_null_when_provided(cls, value):
+        if value is None:
+            raise ValueError("field cannot be null")
         return value
 
 

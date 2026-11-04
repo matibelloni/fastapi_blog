@@ -13,7 +13,9 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True)
     email: Mapped[str] = mapped_column(String(120), unique=True)
 
-    records: Mapped[list[ServiceRecord]] = relationship(back_populates="owner")
+    records: Mapped[list[ServiceRecord]] = relationship(
+        back_populates="owner", cascade="all, delete-orphan"
+    )
 
 
 class ServiceRecord(Base):

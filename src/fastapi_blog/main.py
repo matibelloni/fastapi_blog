@@ -15,7 +15,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import models
 from .database import Base, engine, get_db
-from .schemas import RecordCreate, RecordResponse, UserCreate, UserResponse
+from .schemas import (
+    RecordCreate,
+    RecordUpdate,
+    RecordResponse,
+    UserCreate,
+    UserResponse,
+)
 
 Base.metadata.create_all(bind=engine)
 
@@ -125,6 +131,35 @@ def create_record(record: RecordCreate, db: DbSession):
     db.commit()
     db.refresh(new_record)
     return new_record
+
+
+@app.put("/api/records/{record_id:int}", response_model=RecordResponse)
+def update_record(record_id: int, data: RecordCreate, db: DbSession):
+    record = find_record(db, record_id)
+    if data.user_id != record.user_id:
+        find_user(db, data.user_id)
+    for field, value in data.model_dump().items():
+        setattr(record, field, value)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@app.patch("/api/records/{record_id:int}", response_model=RecordResponse)
+def update_record_partial(record_id: int, data: RecordUpdate, db: DbSession):
+    record = find_record(db, record_id)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(record, field, value)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@app.delete("/api/records/{record_id:int}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_record(record_id: int, db: DbSession):
+    record = find_record(db, record_id)
+    db.delete(record)
+    db.commit()
 
 
 # --- Exception handlers ---
