@@ -100,19 +100,23 @@ def get_user_records(user_id: int, db: DbSession):
     return find_user(db, user_id).records
 
 
-@app.put("/api/users/{user_id:int}", response_model=UserResponse)
-def update_user(user_id: int, data: UserCreate, db: DbSession):
-    user = find_user(db, user_id)
-    for field, value in data.model_dump().items():
-        setattr(user, field, value)
-    db.commit()
-    db.refresh(user)
-    return user
-
-
 @app.patch("/api/users/{user_id:int}", response_model=UserResponse)
 def update_user_partial(user_id: int, data: UserUpdate, db: DbSession):
     user = find_user(db, user_id)
+    if data.username is not None and data.username != user.username:
+        if db.scalars(
+            select(models.User).where(models.User.username == data.username)
+        ).first():
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, detail="Username already exists"
+            )
+    if data.email is not None and data.email != user.email:
+        if db.scalars(
+            select(models.User).where(models.User.email == data.email)
+        ).first():
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, detail="Email already exists"
+            )
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
     db.commit()
