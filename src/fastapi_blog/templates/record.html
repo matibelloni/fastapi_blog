@@ -1,10 +1,11 @@
 {% extends "layout.html" %} {% block content %}
 <h1>{{ record.title }}</h1>
-<small></small>
+<small>
   <a href="{{ url_for('user_records', user_id=record.owner.id) }}"
     >{{ record.owner.username }}</a
-  >· {{ record.service_date }} · {{ record.mileage_km }} km</small
->
+  >
+  · {{ record.service_date }} · {{ record.mileage_km }} km
+</small>
 <p>{{ record.notes }}</p>
 
 <h2>Edit record</h2>
