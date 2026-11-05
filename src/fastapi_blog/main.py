@@ -65,7 +65,9 @@ async def find_record(db: AsyncSession, record_id: int) -> models.ServiceRecord:
 
 @app.get("/", include_in_schema=False)
 async def home(request: Request, db: DbSession):
-    result = await db.scalars(select(models.ServiceRecord))
+    result = await db.scalars(
+        select(models.ServiceRecord), options=[selectinload(models.ServiceRecord.owner)]
+    )
     records = result.all()
     return templates.TemplateResponse(
         request, "home.html", {"records": records, "title": "Home"}
