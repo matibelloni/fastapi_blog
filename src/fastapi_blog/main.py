@@ -216,6 +216,7 @@ async def update_record_partial(record_id: int, data: RecordUpdate, db: DbSessio
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(record, field, value)
     await db.commit()
+    await db.refresh(record, attribute_names=["owner"])
     return record
 
 
