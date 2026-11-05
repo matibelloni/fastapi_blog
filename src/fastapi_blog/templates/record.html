@@ -1,9 +1,82 @@
 {% extends "layout.html" %} {% block content %}
 <h1>{{ record.title }}</h1>
-<small
-  >{{ record.owner.username }} · {{ record.service_date }} · {{
-  record.mileage_km }} km</small
+<small></small>
+  <a href="{{ url_for('user_records', user_id=record.owner.id) }}"
+    >{{ record.owner.username }}</a
+  >· {{ record.service_date }} · {{ record.mileage_km }} km</small
 >
 <p>{{ record.notes }}</p>
+
+<h2>Edit record</h2>
+<form id="edit-record-form">
+  <input name="title" value="{{ record.title }}" required />
+  <textarea name="notes">{{ record.notes }}</textarea>
+  <input
+    name="mileage_km"
+    type="number"
+    min="0"
+    value="{{ record.mileage_km }}"
+    required
+  />
+  <input
+    name="service_date"
+    type="date"
+    value="{{ record.service_date }}"
+    required
+  />
+  <button type="submit">Save changes</button>
+</form>
+
+<button id="delete-record-button" type="button">Delete record</button>
+<p id="form-error" hidden></p>
+
 <a href="{{ url_for('home') }}">Back to records</a>
+
+<script type="module">
+  import { getErrorMessage } from "{{ url_for('static', path='js/utils.js') }}";
+
+  const recordUrl = "/api/records/{{ record.id }}";
+  const form = document.getElementById("edit-record-form");
+  const deleteButton = document.getElementById("delete-record-button");
+  const errorBox = document.getElementById("form-error");
+
+  async function showError(response) {
+    errorBox.textContent = getErrorMessage(await response.json());
+    errorBox.hidden = false;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+
+    const response = await fetch(recordUrl, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...data,
+        mileage_km: Number(data.mileage_km),
+      }),
+    });
+
+    if (response.ok) {
+      window.location.reload();
+    } else {
+      await showError(response);
+    }
+  });
+
+  deleteButton.addEventListener("click", async () => {
+    if (!confirm("Delete this record?")) {
+      return;
+    }
+
+    const response = await fetch(recordUrl, { method: "DELETE" });
+
+    if (response.status === 204) {
+      window.location.href = "{{ url_for('home') }}";
+    } else {
+      await showError(response);
+    }
+  });
+</script>
 {% endblock %}

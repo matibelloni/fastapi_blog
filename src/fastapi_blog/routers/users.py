@@ -42,6 +42,7 @@ async def get_user_records(user_id: int, db: DbSession):
         select(models.ServiceRecord)
         .options(selectinload(models.ServiceRecord.owner))
         .where(models.ServiceRecord.user_id == user_id)
+        .order_by(models.ServiceRecord.service_date.desc())
     )
     return result.all()
 

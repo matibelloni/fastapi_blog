@@ -1,16 +1,66 @@
 {% extends "layout.html" %} {% block content %}
+<form id="create-record-form">
+  <input name="title" placeholder="Title" required />
+  <textarea name="notes" placeholder="Notes"></textarea>
+  <input
+    name="mileage_km"
+    type="number"
+    min="0"
+    placeholder="Mileage (km)"
+    required
+  />
+  <input name="service_date" type="date" required />
+  <input name="user_id" type="number" min="1" placeholder="User ID" required />
+  <button type="submit">Add record</button>
+</form>
+<p id="form-error" hidden></p>
+
 <h1>Service history</h1>
 {% for record in records %}
 <article>
-  <h2>{{ record.title }}</h2>
-  <small>{{ record.service_date }} · {{ record.mileage_km }} km</small>
-  <p>{{ record.notes }}</p>
   <h2>
     <a href="{{ url_for('record_page', record_id=record.id) }}"
       >{{ record.title }}</a
     >
   </h2>
+  <small>
+    <a href="{{ url_for('user_records', user_id=record.owner.id) }}"
+      >{{ record.owner.username }}</a
+    >
+    · {{ record.service_date }} · {{ record.mileage_km }} km
+  </small>
+  <p>{{ record.notes }}</p>
 </article>
 {% else %}
 <p>No records yet.</p>
-{% endfor %} {% endblock %}
+{% endfor %}
+
+<script type="module">
+  import { getErrorMessage } from "{{ url_for('static', path='js/utils.js') }}";
+
+  const form = document.getElementById("create-record-form");
+  const errorBox = document.getElementById("form-error");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+
+    const response = await fetch("/api/records", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...data,
+        mileage_km: Number(data.mileage_km),
+        user_id: Number(data.user_id),
+      }),
+    });
+
+    if (response.ok) {
+      window.location.reload();
+    } else {
+      errorBox.textContent = getErrorMessage(await response.json());
+      errorBox.hidden = false;
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "layout.html" %} {% block content %}
+<h1>Records by {{ user.username }}</h1>
+
+{% for record in records %}
+<article>
+  <h2>
+    <a href="{{ url_for('record_page', record_id=record.id) }}"
+      >{{ record.title }}</a
+    >
+  </h2>
+  <small>
+    <a href="{{ url_for('user_records', user_id=record.owner.id) }}"
+      >{{ record.owner.username }}</a
+    >
+    · {{ record.service_date }} · {{ record.mileage_km }} km
+  </small>
+  <p>{{ record.notes }}</p>
+</article>
+{% else %}
+<p>No records by this user yet.</p>
+{% endfor %}
+
+<a href="{{ url_for('home') }}">Back to records</a>
+{% endblock %}

@@ -13,7 +13,9 @@ router = APIRouter()
 @router.get("", response_model=list[RecordResponse])
 async def get_records(db: DbSession):
     result = await db.scalars(
-        select(models.ServiceRecord).options(selectinload(models.ServiceRecord.owner))
+        select(models.ServiceRecord)
+        .options(selectinload(models.ServiceRecord.owner))
+        .order_by(models.ServiceRecord.service_date.desc())
     )
     return result.all()
 

@@ -15,7 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import models
 from .database import Base, DbSession, engine
-from .queries import find_record
+from .queries import find_record, find_user
 from .routers import records, users
 
 
@@ -42,7 +42,9 @@ app.include_router(records.router, prefix="/api/records", tags=["records"])
 @app.get("/", include_in_schema=False)
 async def home(request: Request, db: DbSession):
     result = await db.scalars(
-        select(models.ServiceRecord).options(selectinload(models.ServiceRecord.owner))
+        select(models.ServiceRecord)
+        .options(selectinload(models.ServiceRecord.owner))
+        .order_by(models.ServiceRecord.service_date.desc())
     )
     all_records = result.all()
     return templates.TemplateResponse(
@@ -55,6 +57,22 @@ async def record_page(request: Request, record_id: int, db: DbSession):
     record = await find_record(db, record_id)
     return templates.TemplateResponse(
         request, "record.html", {"record": record, "title": record.title}
+    )
+
+
+@app.get("/users/{user_id}/records", include_in_schema=False, name="user_records")
+async def user_records_page(request: Request, user_id: int, db: DbSession):
+    user = await find_user(db, user_id)
+    result = await db.scalars(
+        select(models.ServiceRecord)
+        .options(selectinload(models.ServiceRecord.owner))
+        .where(models.ServiceRecord.user_id == user_id)
+        .order_by(models.ServiceRecord.service_date.desc())
+    )
+    return templates.TemplateResponse(
+        request,
+        "user_records.html",
+        {"records": result.all(), "user": user, "title": f"{user.username}'s records"},
     )
 
 
