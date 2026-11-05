@@ -43,9 +43,7 @@ DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
 async def find_user(db: AsyncSession, user_id: int) -> models.User:
-    user = await db.get(
-        models.User, user_id, options=[selectinload(models.User.records)]
-    )
+    user = await db.get(models.User, user_id)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
@@ -114,8 +112,13 @@ async def get_user(user_id: int, db: DbSession):
 
 @app.get("/api/users/{user_id}/records", response_model=list[RecordResponse])
 async def get_user_records(user_id: int, db: DbSession):
-    result = await find_user(db, user_id)
-    return result.records
+    await find_user(db, user_id)
+    result = await db.scalars(
+        select(models.ServiceRecord)
+        .options(selectinload(models.ServiceRecord.owner))
+        .where(models.ServiceRecord.user_id == user_id)
+    )
+    return result.all()
 
 
 @app.patch("/api/users/{user_id:int}", response_model=UserResponse)
