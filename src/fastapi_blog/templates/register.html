@@ -1,0 +1,60 @@
+{% extends "layout.html" %} {% block content %}
+<h1>Register</h1>
+<form id="register-form">
+  <input name="username" placeholder="Username" required />
+  <input name="email" type="email" placeholder="Email" required />
+  <input
+    name="password"
+    type="password"
+    placeholder="Password"
+    minlength="8"
+    required
+  />
+  <input
+    name="confirm_password"
+    type="password"
+    placeholder="Confirm password"
+    minlength="8"
+    required
+  />
+  <button type="submit">Register</button>
+</form>
+<p id="form-error" hidden></p>
+<p>Already have an account? <a href="{{ url_for('login_page') }}">Log in</a></p>
+
+<script type="module">
+  import { getErrorMessage } from "{{ url_for('static', path='js/utils.js') }}";
+
+  const form = document.getElementById("register-form");
+  const errorBox = document.getElementById("form-error");
+
+  function showError(message) {
+    errorBox.textContent = message;
+    errorBox.hidden = false;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const { confirm_password, ...data } = Object.fromEntries(
+      new FormData(form),
+    );
+
+    if (data.password !== confirm_password) {
+      showError("Passwords do not match.");
+      return;
+    }
+
+    const response = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (response.ok) {
+      window.location.href = "{{ url_for('login_page') }}";
+    } else {
+      showError(getErrorMessage(await response.json()));
+    }
+  });
+</script>
+{% endblock %}

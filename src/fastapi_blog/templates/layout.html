@@ -21,8 +21,41 @@
             <a href="{{ url_for('home') }}"><strong>Garage Log</strong></a>
           </li>
         </ul>
+        <ul id="logged-in-nav" hidden>
+          <li id="username-display"></li>
+          <li>
+            <button id="logout-button" type="button" class="secondary outline">
+              Log out
+            </button>
+          </li>
+        </ul>
+        <ul id="logged-out-nav">
+          <li><a href="{{ url_for('login_page') }}">Log in</a></li>
+          <li><a href="{{ url_for('register_page') }}">Register</a></li>
+        </ul>
       </nav>
     </header>
     <main class="container">{% block content %}{% endblock %}</main>
+    <script type="module">
+      import {
+        getCurrentUser,
+        logout,
+      } from "{{ url_for('static', path='js/auth.js') }}";
+
+      async function updateAuthUI() {
+        const user = await getCurrentUser();
+        document.getElementById("logged-in-nav").hidden = !user;
+        document.getElementById("logged-out-nav").hidden = Boolean(user);
+        if (user) {
+          document.getElementById("username-display").textContent =
+            user.username;
+        }
+      }
+
+      document
+        .getElementById("logout-button")
+        .addEventListener("click", logout);
+      updateAuthUI();
+    </script>
   </body>
 </html>
