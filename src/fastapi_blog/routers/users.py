@@ -29,7 +29,7 @@ from ..schemas import (
 router = APIRouter()
 
 
-@router.post("", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserPrivate, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate, db: DbSession):
     result = await db.scalars(
         select(models.User).where(
@@ -60,14 +60,14 @@ async def login_for_access_token(
     db: DbSession,
 ):
     result = await db.scalars(
-        select(models.User).where(models.User.username == form_data.username.lower())
+        select(models.User).where(models.User.email == form_data.username.lower())
     )
     user = result.first()
 
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

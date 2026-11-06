@@ -40,15 +40,10 @@ class UserUpdate(BaseModel):
 
     @field_validator("username", "email")
     @classmethod
-    def lowercase(cls, value: str | None) -> str | None:
-        return value.lower() if value is not None else value
-
-    @field_validator("username", "email")
-    @classmethod
-    def not_null_when_provided(cls, value):
+    def normalize(cls, value: str | None) -> str | None:
         if value is None:
             raise ValueError("field cannot be null")
-        return value
+        return value.lower()
 
 
 class UserPublic(BaseModel):
