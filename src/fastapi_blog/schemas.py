@@ -24,14 +24,24 @@ class UserBase(BaseModel):
     username: str = Field(min_length=1, max_length=50)
     email: EmailStr
 
+    @field_validator("username", "email")
+    @classmethod
+    def lowercase(cls, value: str) -> str:
+        return value.lower()
+
 
 class UserCreate(UserBase):
-    pass
+    password: str = Field(min_length=8)
 
 
 class UserUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=1, max_length=50)
     email: EmailStr | None = None
+
+    @field_validator("username", "email")
+    @classmethod
+    def lowercase(cls, value: str | None) -> str | None:
+        return value.lower() if value is not None else value
 
     @field_validator("username", "email")
     @classmethod
@@ -41,10 +51,20 @@ class UserUpdate(BaseModel):
         return value
 
 
-class UserResponse(UserBase):
+class UserPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    username: str
+
+
+class UserPrivate(UserPublic):
+    email: EmailStr
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 
 class RecordBase(BaseModel):
@@ -78,4 +98,4 @@ class RecordResponse(RecordBase):
 
     id: int
     user_id: int
-    owner: UserResponse
+    owner: UserPublic
