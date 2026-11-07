@@ -22,7 +22,9 @@
           </li>
         </ul>
         <ul id="logged-in-nav" hidden>
-          <li id="username-display"></li>
+          <li>
+            <a id="username-display" href="{{ url_for('account_page') }}"></a>
+          </li>
           <li>
             <button id="logout-button" type="button" class="secondary outline">
               Log out

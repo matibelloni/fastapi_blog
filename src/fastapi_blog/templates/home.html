@@ -1,5 +1,5 @@
 {% extends "layout.html" %} {% block content %}
-<form id="create-record-form">
+<form id="create-record-form" hidden>
   <input name="title" placeholder="Title" required />
   <textarea name="notes" placeholder="Notes"></textarea>
   <input
@@ -10,7 +10,6 @@
     required
   />
   <input name="service_date" type="date" required />
-  <input name="user_id" type="number" min="1" placeholder="User ID" required />
   <button type="submit">Add record</button>
 </form>
 <p id="form-error" hidden></p>
@@ -37,9 +36,17 @@
 
 <script type="module">
   import { getErrorMessage } from "{{ url_for('static', path='js/utils.js') }}";
+  import {
+    getCurrentUser,
+    getToken,
+  } from "{{ url_for('static', path='js/auth.js') }}";
 
   const form = document.getElementById("create-record-form");
   const errorBox = document.getElementById("form-error");
+
+  if (await getCurrentUser()) {
+    form.hidden = false;
+  }
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -47,15 +54,16 @@
 
     const response = await fetch("/api/records", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...data,
-        mileage_km: Number(data.mileage_km),
-        user_id: Number(data.user_id),
-      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ ...data, mileage_km: Number(data.mileage_km) }),
     });
 
-    if (response.ok) {
+    if (response.status === 401) {
+      window.location.href = "{{ url_for('login_page') }}";
+    } else if (response.ok) {
       window.location.reload();
     } else {
       errorBox.textContent = getErrorMessage(await response.json());

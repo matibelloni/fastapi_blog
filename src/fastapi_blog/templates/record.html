@@ -8,40 +8,57 @@
 </small>
 <p>{{ record.notes }}</p>
 
-<h2>Edit record</h2>
-<form id="edit-record-form">
-  <input name="title" value="{{ record.title }}" required />
-  <textarea name="notes">{{ record.notes }}</textarea>
-  <input
-    name="mileage_km"
-    type="number"
-    min="0"
-    value="{{ record.mileage_km }}"
-    required
-  />
-  <input
-    name="service_date"
-    type="date"
-    value="{{ record.service_date }}"
-    required
-  />
-  <button type="submit">Save changes</button>
-</form>
+<section id="owner-actions" hidden>
+  <h2>Edit record</h2>
+  <form id="edit-record-form">
+    <input name="title" value="{{ record.title }}" required />
+    <textarea name="notes">{{ record.notes }}</textarea>
+    <input
+      name="mileage_km"
+      type="number"
+      min="0"
+      value="{{ record.mileage_km }}"
+      required
+    />
+    <input
+      name="service_date"
+      type="date"
+      value="{{ record.service_date }}"
+      required
+    />
+    <button type="submit">Save changes</button>
+  </form>
 
-<button id="delete-record-button" type="button">Delete record</button>
+  <button id="delete-record-button" type="button">Delete record</button>
+</section>
 <p id="form-error" hidden></p>
 
 <a href="{{ url_for('home') }}">Back to records</a>
 
 <script type="module">
   import { getErrorMessage } from "{{ url_for('static', path='js/utils.js') }}";
+  import { getCurrentUser, getToken } from "{{ url_for('static', path='js/auth.js') }}";
 
   const recordUrl = "/api/records/{{ record.id }}";
+  const recordOwnerId = {{ record.user_id }};
   const form = document.getElementById("edit-record-form");
   const deleteButton = document.getElementById("delete-record-button");
   const errorBox = document.getElementById("form-error");
 
-  async function showError(response) {
+  const user = await getCurrentUser();
+  if (user && user.id === recordOwnerId) {
+    document.getElementById("owner-actions").hidden = false;
+  }
+
+  function authHeaders(extra = {}) {
+    return { Authorization: `Bearer ${getToken()}`, ...extra };
+  }
+
+  async function handleError(response) {
+    if (response.status === 401) {
+      window.location.href = "{{ url_for('login_page') }}";
+      return;
+    }
     errorBox.textContent = getErrorMessage(await response.json());
     errorBox.hidden = false;
   }
@@ -52,17 +69,14 @@
 
     const response = await fetch(recordUrl, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...data,
-        mileage_km: Number(data.mileage_km),
-      }),
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...data, mileage_km: Number(data.mileage_km) }),
     });
 
     if (response.ok) {
       window.location.reload();
     } else {
-      await showError(response);
+      await handleError(response);
     }
   });
 
@@ -71,12 +85,12 @@
       return;
     }
 
-    const response = await fetch(recordUrl, { method: "DELETE" });
+    const response = await fetch(recordUrl, { method: "DELETE", headers: authHeaders() });
 
     if (response.status === 204) {
       window.location.href = "{{ url_for('home') }}";
     } else {
-      await showError(response);
+      await handleError(response);
     }
   });
 </script>

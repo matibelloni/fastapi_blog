@@ -1,0 +1,80 @@
+{% extends "layout.html" %} {% block content %}
+<h1>Account</h1>
+<form id="account-form">
+  <label for="username">Username</label>
+  <input id="username" name="username" required />
+  <label for="email">Email</label>
+  <input id="email" name="email" type="email" required />
+  <button type="submit">Save changes</button>
+</form>
+<p id="form-message" hidden></p>
+
+<button id="delete-account-button" type="button" class="secondary">
+  Delete account
+</button>
+
+<script type="module">
+  import { getErrorMessage } from "{{ url_for('static', path='js/utils.js') }}";
+  import {
+    clearUserCache,
+    getCurrentUser,
+    getToken,
+    logout,
+  } from "{{ url_for('static', path='js/auth.js') }}";
+
+  const user = await getCurrentUser();
+  if (!user) {
+    window.location.href = "{{ url_for('login_page') }}";
+    throw new Error("not logged in");
+  }
+
+  const form = document.getElementById("account-form");
+  const message = document.getElementById("form-message");
+  form.username.value = user.username;
+  form.email.value = user.email;
+
+  function show(text) {
+    message.textContent = text;
+    message.hidden = false;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const response = await fetch(`/api/users/${user.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify(Object.fromEntries(new FormData(form))),
+    });
+    if (response.ok) {
+      clearUserCache();
+      window.location.reload();
+    } else {
+      show(getErrorMessage(await response.json()));
+    }
+  });
+
+  document
+    .getElementById("delete-account-button")
+    .addEventListener("click", async () => {
+      if (
+        !confirm(
+          "Delete your account and all your records? This cannot be undone.",
+        )
+      ) {
+        return;
+      }
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (response.status === 204) {
+        logout();
+      } else {
+        show(getErrorMessage(await response.json()));
+      }
+    });
+</script>
+{% endblock %}

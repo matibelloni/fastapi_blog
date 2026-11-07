@@ -8,10 +8,9 @@ from sqlalchemy.orm import selectinload
 
 from .. import models
 from ..auth import (
+    CurrentUser,
     create_access_token,
     hash_password,
-    oauth2_scheme,
-    verify_access_token,
     verify_password,
 )
 from ..config import settings
@@ -29,12 +28,18 @@ from ..schemas import (
 router = APIRouter()
 
 
+def ensure_self(user_id: int, current_user: models.User, action: str) -> None:
+    if user_id != current_user.id:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail=f"Not authorized to {action} this user"
+        )
+
+
 @router.post("", response_model=UserPrivate, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate, db: DbSession):
     result = await db.scalars(
         select(models.User).where(
-            (models.User.username == user.username)
-            | (models.User.email == user.email)
+            (models.User.username == user.username) | (models.User.email == user.email)
         )
     )
     existing = result.first()
@@ -79,27 +84,8 @@ async def login_for_access_token(
 
 
 @router.get("/me", response_model=UserPrivate)
-async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    db: DbSession,
-):
-    unauthorized = HTTPException(
-        status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid or expired token",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    user_id = verify_access_token(token)
-    if user_id is None:
-        raise unauthorized
-    try:
-        user_id_int = int(user_id)
-    except ValueError:
-        raise unauthorized from None
-
-    user = await db.get(models.User, user_id_int)
-    if user is None:
-        raise unauthorized
-    return user
+async def get_current_user(current_user: CurrentUser):
+    return current_user
 
 
 @router.get("/{user_id}", response_model=UserPublic)
@@ -120,8 +106,11 @@ async def get_user_records(user_id: int, db: DbSession):
 
 
 @router.patch("/{user_id:int}", response_model=UserPrivate)
-async def update_user_partial(user_id: int, data: UserUpdate, db: DbSession):
-    user = await find_user(db, user_id)
+async def update_user_partial(
+    user_id: int, data: UserUpdate, current_user: CurrentUser, db: DbSession
+):
+    ensure_self(user_id, current_user, "patch")
+    user = current_user
     if (
         data.username is not None
         and data.username != user.username
@@ -138,9 +127,7 @@ async def update_user_partial(user_id: int, data: UserUpdate, db: DbSession):
         data.email is not None
         and data.email != user.email
         and (
-            await db.scalars(
-                select(models.User).where(models.User.email == data.email)
-            )
+            await db.scalars(select(models.User).where(models.User.email == data.email))
         ).first()
     ):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Email already exists")
@@ -152,7 +139,7 @@ async def update_user_partial(user_id: int, data: UserUpdate, db: DbSession):
 
 
 @router.delete("/{user_id:int}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: int, db: DbSession):
-    user = await find_user(db, user_id)
-    await db.delete(user)
+async def delete_user(user_id: int, current_user: CurrentUser, db: DbSession):
+    ensure_self(user_id, current_user, "delete")
+    await db.delete(current_user)
     await db.commit()

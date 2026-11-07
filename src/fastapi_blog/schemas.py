@@ -70,7 +70,6 @@ class RecordBase(BaseModel):
 
 
 class RecordCreate(RecordBase):
-    user_id: int  # temporary until authentication (class 11)
     service_date: PastDate
 
 

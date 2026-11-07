@@ -1,10 +1,14 @@
 from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
 import jwt
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 
+from . import models
 from .config import settings
+from .database import DbSession
 
 password_hash = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/users/token")
@@ -40,3 +44,29 @@ def verify_access_token(token: str) -> str | None:
     except jwt.InvalidTokenError:
         return None
     return payload.get("sub")
+
+
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: DbSession,
+) -> models.User:
+    unauthorized = HTTPException(
+        status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    user_id = verify_access_token(token)
+    if user_id is None:
+        raise unauthorized
+    try:
+        user_id_int = int(user_id)
+    except ValueError:
+        raise unauthorized from None
+
+    user = await db.get(models.User, user_id_int)
+    if user is None:
+        raise unauthorized
+    return user
+
+
+CurrentUser = Annotated[models.User, Depends(get_current_user)]
