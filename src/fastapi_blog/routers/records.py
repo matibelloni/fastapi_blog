@@ -73,7 +73,7 @@ async def update_record_partial(
     record_id: int, data: RecordUpdate, current_user: CurrentUser, db: DbSession
 ):
     record = await find_record(db, record_id)
-    ensure_owner(record, current_user, "patch")
+    ensure_owner(record, current_user, "update")
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(record, field, value)
     await db.commit()

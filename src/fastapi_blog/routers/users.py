@@ -109,7 +109,7 @@ async def get_user_records(user_id: int, db: DbSession):
 async def update_user_partial(
     user_id: int, data: UserUpdate, current_user: CurrentUser, db: DbSession
 ):
-    ensure_self(user_id, current_user, "patch")
+    ensure_self(user_id, current_user, "update")
     user = current_user
     if (
         data.username is not None
